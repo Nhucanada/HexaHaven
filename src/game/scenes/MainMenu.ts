@@ -33,7 +33,7 @@ export class MainMenu extends Scene
         const gameButton = this.add.text(512, 500, 'Start Game', {
             fontFamily: 'Arial', fontSize: 24, color: '#00ff00',
             backgroundColor: '#000000'
-        }).setOrigin(0.5).setPadding(10).setInteractive();
+        }).setOrigin(0.5).setPadding(10).setInteractive({ useHandCursor: true });
 
         gameButton.on('pointerdown', () => {
             this.scene.start('Game');
@@ -43,10 +43,11 @@ export class MainMenu extends Scene
         const mapGenButton = this.add.text(512, 550, 'Go to Map Gen Test', {
             fontFamily: 'Arial', fontSize: 24, color: '#00ff00',
             backgroundColor: '#000000'
-        }).setOrigin(0.5).setPadding(10).setInteractive();
+        }).setOrigin(0.5).setPadding(10).setInteractive({ useHandCursor: true });
 
         
         mapGenButton.on('pointerdown', () => {
+            console.log('Navigating to MapGenTest');
             this.scene.start('MapGenTest');
         });
     }
