@@ -9,11 +9,16 @@ export class GameBoardScreen {
   private buttonContainer: HTMLElement | null = null;
 
   render(parentElement: HTMLElement, onComplete?: () => void, navigate?: (screenId: ScreenId) => void): void {
-    this.mapScreen.render(parentElement, onComplete, navigate);
+    this.mapScreen.render(
+      parentElement,
+      onComplete,
+      navigate ? (screenId: string) => navigate(screenId as ScreenId) : undefined,
+    );
     this.buttonContainer = parentElement.firstElementChild as HTMLElement | null;
     if (!this.buttonContainer || !navigate) {
       return;
     }
+    const navigateTo = navigate;
 
     this.exitButton = document.createElement('button');
     this.exitButton.textContent = 'Exit to Menu';
@@ -32,7 +37,7 @@ export class GameBoardScreen {
     this.exitButton.style.cursor = 'pointer';
     this.exitButton.addEventListener('click', () => {
       clearLobbySession();
-      navigate(ScreenId.MainMenu);
+      navigateTo(ScreenId.MainMenu);
     });
     this.buttonContainer.appendChild(this.exitButton);
   }
