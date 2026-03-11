@@ -1,7 +1,11 @@
 import type { ScreenId } from '../../shared/constants/screenIds';
 import { EntryScreen } from '../screens/EntryScreen';
+import { GameBoardScreen } from '../screens/GameBoardScreen';
+import { HostGameScreen } from '../screens/HostGameScreen';
+import { JoinGameScreen } from '../screens/JoinGameScreen';
 import { MainMenuScreen } from '../screens/MainMenuScreen';
 import { TestMapGenScreen } from '../screens/TestMapGenScreen';
+import { WaitingRoomScreen } from '../screens/WaitingRoomScreen';
 import { getScreen, registerScreen } from './ScreenRegistry';
 
 export class App {
@@ -14,6 +18,10 @@ export class App {
   private initializeScreens(): void {
     registerScreen('entry', new EntryScreen());
     registerScreen('main-menu', new MainMenuScreen());
+    registerScreen('host-game', new HostGameScreen());
+    registerScreen('join-game', new JoinGameScreen());
+    registerScreen('waiting-room', new WaitingRoomScreen());
+    registerScreen('game-board', new GameBoardScreen());
     registerScreen('test-map-gen', new TestMapGenScreen());
   }
 
