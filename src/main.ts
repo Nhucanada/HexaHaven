@@ -1,7 +1,4 @@
-import StartGame from './game/main';
+import './client/styles/index.css';
+import { startClient } from './client/bootstrap/startClient';
 
-document.addEventListener('DOMContentLoaded', () => {
-
-    StartGame('game-container');
-
-});
+startClient();
