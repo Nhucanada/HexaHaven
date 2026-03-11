@@ -17,9 +17,11 @@ const BIOME_PALETTE: Record<BiomeType, number[]> = {
     ARCTIC:   [0xc8d8e8, 0xd4e4f0, 0xdce8f0, 0xe8f0f8, 0xf0f4f8, 0xd0e0f0],
 };
 
-const MAP_RADIUS: Record<MapSize, number> = { small: 3, medium: 5, large: 7 };
+const MAP_RADIUS: Record<MapSize, number> = { small: 1, medium: 2, large: 3 };
 const TOKEN_POOL = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
 const HEX_DIRS: [number, number][] = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+const TEST_MAP_BUTTON_FONT_FAMILY = '04b_30';
+const TEST_MAP_BUTTON_FONT_URL = '/fonts/04b_30.ttf';
 
 // ─── Color utilities ───
 function hexToRGB(c: number): [number, number, number] {
@@ -165,7 +167,7 @@ function drawBeachDetails(g: Phaser.GameObjects.Graphics, cx: number, cy: number
     }
 }
 
-function drawDesertDetails(g: Phaser.GameObjects.Graphics, cx: number, cy: number, sz: number, q: number, r: number) {
+function drawDesertDetails(g: Phaser.GameObjects.Graphics, cx: number, cy: number, sz: number, _q: number, _r: number) {
     for (let d = 0; d < 3; d++) {
         const baseY = cy + (d - 1) * sz * 0.28;
         g.lineStyle(1.2 + d * 0.3, d === 1 ? 0xb8a060 : 0xccb478, 0.3 + d * 0.05);
@@ -317,28 +319,25 @@ export class MapGenTest extends Scene {
     private hexMap = new Map<string, Hex>();
     private mapRadius = 5;
     private hexSize = 48;
+    private readonly mapZoom = 1.5;
     private canvasKey = 'terrainCanvas';
 
     constructor() { super('MapGenTest'); }
 
-    create() {
+    regenerateMap(): void {
         this.terrain = new TerrainGenerator();
         this.generateMap('medium');
         this.renderMap();
+    }
+
+    create() {
+        this.regenerateMap();
 
         this.cameras.main.centerOn(0, 0);
-        this.cameras.main.zoom = 0.8;
+        this.cameras.main.zoom = this.mapZoom;
+        this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
 
-        this.add.text(16, 16, 'Click to generate new map', {
-            fontSize: '16px', color: '#ffffff',
-            backgroundColor: '#000000', padding: { x: 8, y: 8 }
-        }).setScrollFactor(0).setDepth(100);
-
-        this.input.on('pointerdown', () => {
-            this.terrain = new TerrainGenerator();
-            this.generateMap('medium');
-            this.renderMap();
-        });
+        this.input.on('pointerdown', () => this.regenerateMap());
     }
 
     private generateMap(size: MapSize) {
@@ -354,9 +353,7 @@ export class MapGenTest extends Scene {
                     hex.elevation = this.terrain.getElevation(p.x, p.y);
                     hex.moisture = this.terrain.getMoisture(p.x, p.y);
                     hex.biome = determineBiome(hex.elevation, hex.moisture);
-                    if (hex.biome !== 'OCEAN') {
-                        hex.numberToken = TOKEN_POOL[Math.floor(Math.random() * TOKEN_POOL.length)];
-                    }
+                    hex.numberToken = TOKEN_POOL[Math.floor(Math.random() * TOKEN_POOL.length)];
                     this.hexes.push(hex);
                     this.hexMap.set(hexKey(q, r), hex);
                 }
@@ -471,9 +468,11 @@ export class MapGenTest extends Scene {
             outlineG.strokePath();
         }
 
+        this.drawSandBorder(sz);
+
         const tokenG = this.add.graphics().setDepth(3);
         for (const hex of this.hexes) {
-            if (hex.numberToken == null || hex.biome === 'OCEAN') continue;
+            if (hex.numberToken == null) continue;
             const p = hexToPixel(hex.q, hex.r, sz);
             tokenG.fillStyle(0xffffff, 0.88);
             tokenG.fillCircle(p.x, p.y, 8);
@@ -481,8 +480,81 @@ export class MapGenTest extends Scene {
             tokenG.strokeCircle(p.x, p.y, 8);
             const color = (hex.numberToken === 6 || hex.numberToken === 8) ? '#cc0000' : '#222222';
             this.add.text(p.x, p.y, hex.numberToken.toString(), {
-                fontSize: '11px', fontStyle: 'bold', color, align: 'center'
+                fontSize: '11px',
+                fontStyle: 'bold',
+                color,
+                align: 'center',
+                resolution: 10
             }).setOrigin(0.5).setDepth(4);
+        }
+    }
+
+    private drawSandBorder(sz: number): void {
+        const borderG = this.add.graphics().setDepth(2.5);
+        const outerColor = 0xcdb78f;
+        const coreColor = 0xe7d6ad;
+        const edgeColor = 0xb89a63;
+        const halfSide = sz * 0.5;
+
+        for (const hex of this.hexes) {
+            const c = hexToPixel(hex.q, hex.r, sz);
+            for (let dirIdx = 0; dirIdx < HEX_DIRS.length; dirIdx++) {
+                const [dq, dr] = HEX_DIRS[dirIdx];
+                const nq = hex.q + dq;
+                const nr = hex.r + dr;
+                if (this.hexMap.has(hexKey(nq, nr))) continue;
+
+                const n = hexToPixel(nq, nr, sz);
+                const vx = n.x - c.x;
+                const vy = n.y - c.y;
+                const len = Math.hypot(vx, vy);
+                if (len < 0.001) continue;
+
+                const ux = vx / len;
+                const uy = vy / len;
+                const px = -uy;
+                const py = ux;
+
+                const mx = (c.x + n.x) * 0.5;
+                const my = (c.y + n.y) * 0.5;
+                const ax = mx + px * halfSide;
+                const ay = my + py * halfSide;
+                const bx = mx - px * halfSide;
+                const by = my - py * halfSide;
+
+                const outward = sz * 0.09;
+                const segments = 10;
+                const points: Array<{ x: number; y: number }> = [];
+                for (let i = 0; i <= segments; i++) {
+                    const t = i / segments;
+                    const lx = ax + (bx - ax) * t;
+                    const ly = ay + (by - ay) * t;
+                    const s = Math.sin(t * Math.PI);
+                    const jitter = (seededRandom(hex.q, hex.r, dirIdx * 31 + i + 500) - 0.5) * sz * 0.06 * s;
+                    points.push({
+                        x: lx + ux * outward + px * jitter,
+                        y: ly + uy * outward + py * jitter,
+                    });
+                }
+
+                borderG.lineStyle(14, outerColor, 0.42);
+                borderG.beginPath();
+                borderG.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) borderG.lineTo(points[i].x, points[i].y);
+                borderG.strokePath();
+
+                borderG.lineStyle(9, coreColor, 0.7);
+                borderG.beginPath();
+                borderG.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) borderG.lineTo(points[i].x, points[i].y);
+                borderG.strokePath();
+
+                borderG.lineStyle(2.2, edgeColor, 0.4);
+                borderG.beginPath();
+                borderG.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) borderG.lineTo(points[i].x, points[i].y);
+                borderG.strokePath();
+            }
         }
     }
 }
@@ -491,17 +563,66 @@ export class MapGenTest extends Scene {
 export class TestMapGenScreen {
     readonly id = 'test-map-gen';
     private container: HTMLElement | null = null;
+    private regenerateButton: HTMLButtonElement | null = null;
     private game: Phaser.Game | null = null;
+
+    private ensureButtonFontRegistered(): void {
+        const styleId = 'test-map-gen-button-font-face';
+        if (document.getElementById(styleId)) return;
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+@font-face {
+    font-family: '${TEST_MAP_BUTTON_FONT_FAMILY}';
+    src: url('${TEST_MAP_BUTTON_FONT_URL}') format('truetype');
+    font-display: swap;
+}`;
+        document.head.appendChild(style);
+    }
 
     render(parentElement: HTMLElement, _onComplete?: () => void, _navigate?: (screenId: string) => void): void {
         // Clear existing content
+        this.ensureButtonFontRegistered();
         parentElement.innerHTML = '';
-
-        // Create container for Phaser
         this.container = document.createElement('div');
-        this.container.className = 'w-full h-full';
-        this.container.id = 'phaser-container';
+        this.container.className = 'relative w-full h-full overflow-hidden';
+        this.container.style.position = 'fixed';
+        this.container.style.inset = '0';
+        this.container.style.backgroundColor = '#9cced9';
+        this.container.style.backgroundImage = "url('/images/test-map-wood-bg.png')";
+        this.container.style.backgroundSize = 'cover';
+        this.container.style.backgroundPosition = 'center';
+        this.container.style.backgroundRepeat = 'no-repeat';
         parentElement.appendChild(this.container);
+
+        // Create Phaser mount over background
+        const phaserMount = document.createElement('div');
+        phaserMount.id = 'phaser-container';
+        phaserMount.style.position = 'absolute';
+        phaserMount.style.inset = '0';
+        phaserMount.style.zIndex = '1';
+        this.container.appendChild(phaserMount);
+
+        this.regenerateButton = document.createElement('button');
+        this.regenerateButton.textContent = 'Generate New Map';
+        this.regenerateButton.style.position = 'absolute';
+        this.regenerateButton.style.top = '16px';
+        this.regenerateButton.style.left = '16px';
+        this.regenerateButton.style.zIndex = '3';
+        this.regenerateButton.style.padding = '8px 10px';
+        this.regenerateButton.style.fontSize = '17px';
+        this.regenerateButton.style.fontWeight = '600';
+        this.regenerateButton.style.fontFamily = `'${TEST_MAP_BUTTON_FONT_FAMILY}', monospace`;
+        this.regenerateButton.style.color = '#ffffff';
+        this.regenerateButton.style.background = 'rgba(0, 0, 0, 0.7)';
+        this.regenerateButton.style.border = '1px solid rgba(255, 255, 255, 0.35)';
+        this.regenerateButton.style.borderRadius = '8px';
+        this.regenerateButton.style.cursor = 'pointer';
+        this.regenerateButton.onclick = () => {
+            const scene = this.game?.scene.getScene('MapGenTest') as MapGenTest | undefined;
+            scene?.regenerateMap();
+        };
+        this.container.appendChild(this.regenerateButton);
 
         // Initialize Phaser game
         const config: Phaser.Types.Core.GameConfig = {
@@ -509,6 +630,7 @@ export class TestMapGenScreen {
             parent: 'phaser-container',
             width: window.innerWidth,
             height: window.innerHeight,
+            transparent: true,
             scene: MapGenTest,
             scale: {
                 mode: Phaser.Scale.FIT,
@@ -527,6 +649,10 @@ export class TestMapGenScreen {
         if (this.container) {
             this.container.remove();
             this.container = null;
+        }
+        if (this.regenerateButton) {
+            this.regenerateButton.remove();
+            this.regenerateButton = null;
         }
     }
 }
