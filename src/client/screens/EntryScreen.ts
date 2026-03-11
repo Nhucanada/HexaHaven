@@ -11,7 +11,27 @@ export class EntryScreen {
 
     // Create splash container
     this.container = document.createElement('div');
-    this.container.className = 'flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-blue-950 via-slate-900 to-slate-950 gap-8';
+    this.container.className = 'relative flex flex-col items-center justify-center w-full h-full overflow-hidden bg-gradient-to-b from-blue-950 via-slate-900 to-slate-950';
+
+    // Background video (served from public/videos/welcome-bg.mp4)
+    const backgroundVideo = document.createElement('video');
+    backgroundVideo.className = 'absolute inset-0 w-full h-full object-cover';
+    backgroundVideo.autoplay = true;
+    backgroundVideo.loop = true;
+    backgroundVideo.muted = true;
+    backgroundVideo.playsInline = true;
+    backgroundVideo.setAttribute('aria-hidden', 'true');
+
+    const videoSource = document.createElement('source');
+    videoSource.src = '/videos/welcome-bg.mp4';
+    videoSource.type = 'video/mp4';
+    backgroundVideo.appendChild(videoSource);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'absolute inset-0 bg-slate-950/50';
+
+    const content = document.createElement('div');
+    content.className = 'relative z-10 flex flex-col items-center justify-center gap-8';
 
     // Logo/Icon area
     const logoContainer = document.createElement('div');
@@ -39,10 +59,14 @@ export class EntryScreen {
     subtitle.className = 'text-sm text-slate-400 mt-8';
     subtitle.textContent = 'Loading...';
 
-    this.container.appendChild(logoContainer);
-    this.container.appendChild(title);
-    this.container.appendChild(loadingContainer);
-    this.container.appendChild(subtitle);
+    content.appendChild(logoContainer);
+    content.appendChild(title);
+    content.appendChild(loadingContainer);
+    content.appendChild(subtitle);
+
+    this.container.appendChild(backgroundVideo);
+    this.container.appendChild(overlay);
+    this.container.appendChild(content);
 
     parentElement.appendChild(this.container);
 
