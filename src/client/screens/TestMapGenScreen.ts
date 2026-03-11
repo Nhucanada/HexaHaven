@@ -323,8 +323,17 @@ export class MapGenTest extends Scene {
     private hexSize = 48;
     private readonly mapZoom = 1.5;
     private canvasKey = 'terrainCanvas';
+    private readonly sandBorderTextureKeys = ['beach-corner-1', 'beach-corner-2', 'beach-corner-3'] as const;
 
     constructor() { super('MapGenTest'); }
+
+    preload() {
+        this.sandBorderTextureKeys.forEach((key, idx) => {
+            if (!this.textures.exists(key)) {
+                this.load.image(key, `/images/beach-corner-${idx + 1}.png`);
+            }
+        });
+    }
 
     regenerateMap(): void {
         this.terrain = new TerrainGenerator();
@@ -492,10 +501,7 @@ export class MapGenTest extends Scene {
     }
 
     private drawSandBorder(sz: number): void {
-        const borderG = this.add.graphics().setDepth(2.5);
-        const outerColor = 0xcdb78f;
-        const coreColor = 0xe7d6ad;
-        const edgeColor = 0xb89a63;
+        const borderDepth = -0.1;
         const halfSide = sz * 0.5;
 
         for (const hex of this.hexes) {
@@ -524,38 +530,19 @@ export class MapGenTest extends Scene {
                 const bx = mx - px * halfSide;
                 const by = my - py * halfSide;
 
-                const outward = sz * 0.09;
-                const segments = 10;
-                const points: Array<{ x: number; y: number }> = [];
-                for (let i = 0; i <= segments; i++) {
-                    const t = i / segments;
-                    const lx = ax + (bx - ax) * t;
-                    const ly = ay + (by - ay) * t;
-                    const s = Math.sin(t * Math.PI);
-                    const jitter = (seededRandom(hex.q, hex.r, dirIdx * 31 + i + 500) - 0.5) * sz * 0.06 * s;
-                    points.push({
-                        x: lx + ux * outward + px * jitter,
-                        y: ly + uy * outward + py * jitter,
-                    });
-                }
+                const sideLength = Math.hypot(bx - ax, by - ay);
+                const imageLength = sideLength * 1.24;
+                const imageWidth = sz * 0.42;
+                const textureIdx = Math.floor(seededRandom(hex.q, hex.r, dirIdx * 17 + 900) * this.sandBorderTextureKeys.length);
+                const textureKey = this.sandBorderTextureKeys[Math.min(this.sandBorderTextureKeys.length - 1, textureIdx)];
+                const edgeAngle = Math.atan2(by - ay, bx - ax);
+                const outwardOffset = -sz * 0.04;
 
-                borderG.lineStyle(14, outerColor, 0.42);
-                borderG.beginPath();
-                borderG.moveTo(points[0].x, points[0].y);
-                for (let i = 1; i < points.length; i++) borderG.lineTo(points[i].x, points[i].y);
-                borderG.strokePath();
-
-                borderG.lineStyle(9, coreColor, 0.7);
-                borderG.beginPath();
-                borderG.moveTo(points[0].x, points[0].y);
-                for (let i = 1; i < points.length; i++) borderG.lineTo(points[i].x, points[i].y);
-                borderG.strokePath();
-
-                borderG.lineStyle(2.2, edgeColor, 0.4);
-                borderG.beginPath();
-                borderG.moveTo(points[0].x, points[0].y);
-                for (let i = 1; i < points.length; i++) borderG.lineTo(points[i].x, points[i].y);
-                borderG.strokePath();
+                this.add.image(mx + ux * outwardOffset, my + uy * outwardOffset, textureKey)
+                    .setDepth(borderDepth)
+                    .setDisplaySize(imageWidth, imageLength)
+                    .setRotation(edgeAngle - Math.PI / 2)
+                    .setAlpha(0.95);
             }
         }
     }
