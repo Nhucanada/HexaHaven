@@ -17,10 +17,7 @@ export interface PersistedPlayer {
   joinedAt: number;
 }
 
-export interface PersistedBoard {
-  sessionId: string;
-  data: Record<string, unknown>;
-}
+export type { BoardState } from './domain';
 
 export interface PersistedTurn {
   sessionId: string;
