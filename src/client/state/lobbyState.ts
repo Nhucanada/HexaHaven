@@ -1,4 +1,4 @@
-type LobbyRole = 'host' | 'guest';
+type LobbyRole = 'host' | 'guest' | 'spectator';
 
 export interface LobbySession {
   roomId: string;
