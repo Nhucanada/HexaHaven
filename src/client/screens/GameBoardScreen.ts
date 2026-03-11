@@ -4,7 +4,7 @@ import { TestMapGenScreen } from './TestMapGenScreen';
 
 export class GameBoardScreen {
   readonly id = ScreenId.GameBoard;
-  private readonly mapScreen = new TestMapGenScreen();
+  private readonly mapScreen = new TestMapGenScreen({ showExitButton: false });
   private exitButton: HTMLButtonElement | null = null;
   private buttonContainer: HTMLElement | null = null;
 
@@ -14,6 +14,7 @@ export class GameBoardScreen {
       onComplete,
       navigate ? (screenId: string) => navigate(screenId as ScreenId) : undefined,
     );
+
     this.buttonContainer = parentElement.firstElementChild as HTMLElement | null;
     if (!this.buttonContainer || !navigate) {
       return;

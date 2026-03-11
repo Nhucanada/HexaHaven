@@ -1,5 +1,7 @@
 import Phaser, { Scene } from 'phaser';
 import { createNoise2D } from 'simplex-noise';
+import { ScreenId } from '../../shared/constants/screenIds';
+import { clearLobbySession } from '../state/lobbyState';
 
 // --- Types ---
 type BiomeType = 'OCEAN' | 'BEACH' | 'DESERT' | 'SAVANNAH' | 'FOREST' | 'JUNGLE' | 'MOUNTAIN' | 'ARCTIC';
@@ -564,7 +566,13 @@ export class TestMapGenScreen {
     readonly id = 'test-map-gen';
     private container: HTMLElement | null = null;
     private regenerateButton: HTMLButtonElement | null = null;
+    private exitButton: HTMLButtonElement | null = null;
     private game: Phaser.Game | null = null;
+    private readonly showExitButton: boolean;
+
+    constructor(options?: { showExitButton?: boolean }) {
+        this.showExitButton = options?.showExitButton ?? true;
+    }
 
     private ensureButtonFontRegistered(): void {
         const styleId = 'test-map-gen-button-font-face';
@@ -580,7 +588,7 @@ export class TestMapGenScreen {
         document.head.appendChild(style);
     }
 
-    render(parentElement: HTMLElement, _onComplete?: () => void, _navigate?: (screenId: string) => void): void {
+    render(parentElement: HTMLElement, _onComplete?: () => void, navigate?: (screenId: string) => void): void {
         // Clear existing content
         this.ensureButtonFontRegistered();
         parentElement.innerHTML = '';
@@ -589,7 +597,7 @@ export class TestMapGenScreen {
         this.container.style.position = 'fixed';
         this.container.style.inset = '0';
         this.container.style.backgroundColor = '#9cced9';
-        this.container.style.backgroundImage = "url('/images/test-map-wood-bg.png')";
+        this.container.style.backgroundImage = "url('/images/test-map-grass.png')";
         this.container.style.backgroundSize = 'cover';
         this.container.style.backgroundPosition = 'center';
         this.container.style.backgroundRepeat = 'no-repeat';
@@ -624,6 +632,29 @@ export class TestMapGenScreen {
         };
         this.container.appendChild(this.regenerateButton);
 
+        if (this.showExitButton) {
+            this.exitButton = document.createElement('button');
+            this.exitButton.textContent = 'Exit to Menu';
+            this.exitButton.style.position = 'absolute';
+            this.exitButton.style.top = '16px';
+            this.exitButton.style.right = '16px';
+            this.exitButton.style.zIndex = '3';
+            this.exitButton.style.padding = '8px 10px';
+            this.exitButton.style.fontSize = '14px';
+            this.exitButton.style.fontWeight = '600';
+            this.exitButton.style.fontFamily = `'${TEST_MAP_BUTTON_FONT_FAMILY}', monospace`;
+            this.exitButton.style.color = '#ffffff';
+            this.exitButton.style.background = 'rgba(15, 23, 42, 0.85)';
+            this.exitButton.style.border = '1px solid rgba(255, 255, 255, 0.35)';
+            this.exitButton.style.borderRadius = '8px';
+            this.exitButton.style.cursor = 'pointer';
+            this.exitButton.onclick = () => {
+                clearLobbySession();
+                navigate?.(ScreenId.MainMenu);
+            };
+            this.container.appendChild(this.exitButton);
+        }
+
         // Initialize Phaser game
         const config: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
@@ -653,6 +684,10 @@ export class TestMapGenScreen {
         if (this.regenerateButton) {
             this.regenerateButton.remove();
             this.regenerateButton = null;
+        }
+        if (this.exitButton) {
+            this.exitButton.remove();
+            this.exitButton = null;
         }
     }
 }
